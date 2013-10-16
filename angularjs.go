@@ -74,6 +74,12 @@ const js_Scope_Set = `
 	}
 `
 
+func (s *Scope) Apply(f func()) {}
+
+const js_Scope_Apply = `
+	this.native.$apply(f);
+`
+
 type SCE struct {
 	native interface{}
 }
