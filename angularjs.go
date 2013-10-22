@@ -63,13 +63,13 @@ func (s *Scope) Set(key string, value interface{}) {}
 const js_Scope_Set = `
 	switch (value.constructor) {
 	case Go$String:
-		this.native[key] = Go$externalizeString(value.v);
+		this.native[key] = Go$externalizeString(value.Go$val);
 		break;
 	case Go$Slice:
 		this.native[key] = Go$sliceToArray(value);
 		break;
 	default:
-		this.native[key] = value.v !== undefined ? value.v : value;
+		this.native[key] = value.Go$val;
 		break;
 	}
 `
