@@ -25,7 +25,7 @@ func (m *Module) NewFilter(name string, fn func(text string, arguments []string)
 const js_Module_NewFilter = `
 	this.native.filter(name, function() {
 		return function(text) {
-			return fn(text, new Go$Slice(Array.prototype.slice.call(arguments, 1)));
+			return fn(text, new (Go$sliceType(Go$String))(Array.prototype.slice.call(arguments, 1)));
 		};
 	});
 `
@@ -52,26 +52,18 @@ const js_Scope_GetFloat = `
 	return parseFloat(this.native[key]);
 `
 
-func (s *Scope) GetSlice(key string) []interface{} { return nil }
-
-const js_Scope_GetSlice = `
-	return new Go$Slice(this.native[key]);
-`
-
 func (s *Scope) Set(key string, value interface{}) {}
 
 const js_Scope_Set = `
-	switch (value.constructor) {
-	case Go$String:
+	if (value.constructor === Go$String) {
 		this.native[key] = Go$externalizeString(value.Go$val);
-		break;
-	case Go$Slice:
-		this.native[key] = Go$sliceToArray(value);
-		break;
-	default:
-		this.native[key] = value.Go$val;
-		break;
+		return;
 	}
+	if (value.array !== undefined) { // TODO we need a better solution here
+		this.native[key] = Go$sliceToArray(value);
+		return;
+	}
+	this.native[key] = value.Go$val;
 `
 
 func (s *Scope) Apply(f func()) {}
