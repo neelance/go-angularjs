@@ -3,7 +3,7 @@ package angularjs
 func NewModule(name string, requires []string, configFn func()) *Module { return nil }
 
 const js_NewModule = `
-	requires = requires ? Go$sliceToArray(requires) : [];
+	requires = requires ? go$sliceToArray(requires) : [];
 	return new Module(angular.module(name, requires, configFn));
 `
 
@@ -25,7 +25,7 @@ func (m *Module) NewFilter(name string, fn func(text string, arguments []string)
 const js_Module_NewFilter = `
 	this.native.filter(name, function() {
 		return function(text) {
-			return fn(text, new (Go$sliceType(Go$String))(Array.prototype.slice.call(arguments, 1)));
+			return fn(text, new (go$sliceType(Go$String))(Array.prototype.slice.call(arguments, 1)));
 		};
 	});
 `
@@ -37,7 +37,7 @@ type Scope struct {
 func (s *Scope) GetString(key string) string { return "" }
 
 const js_Scope_GetString = `
-	return Go$internalizeString(String(this.native[key]));
+	return go$internalizeString(String(this.native[key]));
 `
 
 func (s *Scope) GetInt(key string) int { return 0 }
@@ -56,14 +56,14 @@ func (s *Scope) Set(key string, value interface{}) {}
 
 const js_Scope_Set = `
 	if (value.constructor === Go$String) {
-		this.native[key] = Go$externalizeString(value.Go$val);
+		this.native[key] = go$externalizeString(value.go$val);
 		return;
 	}
 	if (value.array !== undefined) { // TODO we need a better solution here
-		this.native[key] = Go$sliceToArray(value);
+		this.native[key] = go$sliceToArray(value);
 		return;
 	}
-	this.native[key] = value.Go$val;
+	this.native[key] = value.go$val;
 `
 
 func (s *Scope) Apply(f func()) {}
