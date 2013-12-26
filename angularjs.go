@@ -4,7 +4,7 @@ func NewModule(name string, requires []string, configFn func()) *Module { return
 
 const js_NewModule = `
 	requires = requires ? go$sliceToArray(requires) : [];
-	return new Module(angular.module(name, requires, configFn));
+	return new Module.Ptr(angular.module(name, requires, configFn));
 `
 
 type Module struct {
@@ -16,7 +16,7 @@ func (m *Module) NewController(name string, constructor func(scope *Scope)) {}
 
 const js_Module_NewController = `
 	this.native.controller(name, function($scope, $sce) {
-		constructor(new Scope($scope, new SCE($sce)));
+		constructor(new Scope.Ptr($scope, new SCE.Ptr($sce)));
 	});
 `
 
