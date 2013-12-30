@@ -1,77 +1,94 @@
 package angularjs
 
-func NewModule(name string, requires []string, configFn func()) *Module { return nil }
-
-const js_NewModule = `
-	requires = requires ? go$sliceToArray(requires) : [];
-	return new Module.Ptr(angular.module(name, requires, configFn));
-`
+type jsObject *struct{}
 
 type Module struct {
-	native interface{}
+	native jsObject
 	SCE    *SCE
 }
 
 func (m *Module) NewController(name string, constructor func(scope *Scope)) {}
 
 const js_Module_NewController = `
-	this.native.controller(name, function($scope, $sce) {
+	m.native.controller(name, function($scope, $sce) {
 		constructor(new Scope.Ptr($scope, new SCE.Ptr($sce)));
 	});
 `
 
-func (m *Module) NewFilter(name string, fn func(text string, arguments []string) string) {}
-
-const js_Module_NewFilter = `
-	this.native.filter(name, function() {
-		return function(text) {
-			return fn(text, new (go$sliceType(Go$String))(Array.prototype.slice.call(arguments, 1)));
-		};
-	});
-`
+type SCE struct {
+	native jsObject
+}
 
 type Scope struct {
-	native interface{}
+	native jsObject
 }
+
+func (s *Scope) Get(key string) interface{} { return nil }
+
+const js_Scope_Get = `
+	return s.native[key];
+`
 
 func (s *Scope) GetString(key string) string { return "" }
 
 const js_Scope_GetString = `
-	return go$internalizeString(String(this.native[key]));
+	return s.native[key];
 `
 
 func (s *Scope) GetInt(key string) int { return 0 }
 
 const js_Scope_GetInt = `
-	return parseInt(this.native[key]);
+	return s.native[key];
 `
 
 func (s *Scope) GetFloat(key string) float64 { return 0 }
 
 const js_Scope_GetFloat = `
-	return parseFloat(this.native[key]);
+	return s.native[key];
 `
 
 func (s *Scope) Set(key string, value interface{}) {}
 
 const js_Scope_Set = `
-	if (value.constructor === Go$String) {
-		this.native[key] = go$externalizeString(value.go$val);
-		return;
-	}
-	if (value.array !== undefined) { // TODO we need a better solution here
-		this.native[key] = go$sliceToArray(value);
-		return;
-	}
-	this.native[key] = value.go$val;
+	s.native[key] = value;
 `
 
 func (s *Scope) Apply(f func()) {}
 
 const js_Scope_Apply = `
-	this.native.$apply(f);
+	s.native.$apply(f);
 `
 
-type SCE struct {
-	native interface{}
+func (s *Scope) EvalAsync(f func()) {}
+
+const js_Scope_EvalAsync = `
+  s.native.$evalAsync(f);
+`
+
+type JQueryElement struct {
+	native jsObject
 }
+
+func (e *JQueryElement) Prop(name string) string { return "" }
+
+const js_JQueryElement_Prop = `
+	return e.native.prop(name);
+`
+
+func (e *JQueryElement) SetProp(name, value interface{}) {}
+
+const js_JQueryElement_SetProp = `
+	e.native.prop(name, value);
+`
+
+func NewModule(name string, requires []string, configFn func()) *Module { return nil }
+
+const js_NewModule = `
+	return new Module.Ptr(angular.module(name, requires, configFn));
+`
+
+func ElementById(id string) *JQueryElement { return nil }
+
+const js_ElementById = `
+	return new JQueryElement.Ptr(angular.element(document.getElementById(id)));
+`
