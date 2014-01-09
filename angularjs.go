@@ -4,20 +4,15 @@ type jsObject *struct{}
 
 type Module struct {
 	jso jsObject
-	SCE *SCE
 }
 
 func (m *Module) NewController(name string, constructor func(scope *Scope)) {}
 
 const js_Module_NewController = `
-	m.jso.controller(name, function($scope, $sce) {
-		constructor(new Scope.Ptr($scope, new SCE.Ptr($sce)));
+	m.jso.controller(name, function($scope) {
+		constructor(new Scope.Ptr($scope));
 	});
 `
-
-type SCE struct {
-	jso jsObject
-}
 
 type Scope struct {
 	jso jsObject
@@ -91,4 +86,26 @@ func ElementById(id string) *JQueryElement { return nil }
 
 const js_ElementById = `
 	return new JQueryElement.Ptr(angular.element(document.getElementById(id)));
+`
+
+func Service(name string) jsObject { return nil }
+
+const js_Service = `
+	return angular.element(document).injector().get(name);
+`
+
+type HttpService struct{}
+
+var HTTP = new(HttpService)
+
+func (s *HttpService) Get(url string, callback func(data string, status int)) {}
+
+const js_HttpService_Get = `
+	js_Service("$http").get(url).
+		success(function(data, status, headers, config) {
+			callback(data, status);
+		}).
+		error(function(data, status, headers, config) {
+			callback(data, status);
+		});
 `
