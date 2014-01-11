@@ -64,7 +64,7 @@ type JQueryElement struct {
 	jso jsObject
 }
 
-func (e *JQueryElement) Prop(name string) string { return "" }
+func (e *JQueryElement) Prop(name string) interface{} { return nil }
 
 const js_JQueryElement_Prop = `
 	return e.jso.prop(name);
@@ -74,6 +74,35 @@ func (e *JQueryElement) SetProp(name, value interface{}) {}
 
 const js_JQueryElement_SetProp = `
 	e.jso.prop(name, value);
+`
+
+func (e *JQueryElement) On(events string, handler func(*Event))
+
+const js_JQueryElement_On = `
+  e.jso.on(events, function(e) { handler(new Event.Ptr(e, e.keyCode)); });
+`
+
+func (e *JQueryElement) Val() interface{} { return "" }
+
+const js_JQueryElement_Val = `
+	return e.jso.val();
+`
+
+func (e *JQueryElement) SetVal(value interface{}) {}
+
+const js_JQueryElement_SetVal = `
+	e.jso.val(value);
+`
+
+type Event struct {
+	jso     jsObject
+	KeyCode int
+}
+
+func (e *Event) PreventDefault() {}
+
+const js_Event_PreventDefault = `
+	e.jso.preventDefault();
 `
 
 func NewModule(name string, requires []string, configFn func()) *Module { return nil }
