@@ -1,140 +1,80 @@
 package angularjs
 
-type jsObject *struct{}
+import "github.com/neelance/gopherjs/js"
 
-type Module struct {
-	jso jsObject
+type Module struct{ js.Object }
+
+func (m *Module) NewController(name string, constructor func(scope *Scope)) {
+	m.Call("controller", name, func(dollar_scope js.Object) {
+		constructor(&Scope{dollar_scope})
+	})
 }
 
-func (m *Module) NewController(name string, constructor func(scope *Scope)) {}
+type Scope struct{ js.Object }
 
-const js_Module_NewController = `
-	m.jso.controller(name, function($scope) {
-		constructor(new Scope.Ptr($scope));
-	});
-`
-
-type Scope struct {
-	jso jsObject
+func (s *Scope) Apply(f func()) {
+	s.Call("$apply", f)
 }
 
-func (s *Scope) Get(key string) interface{} { return nil }
-
-const js_Scope_Get = `
-	return s.jso[key];
-`
-
-func (s *Scope) GetString(key string) string { return "" }
-
-const js_Scope_GetString = `
-	return s.jso[key];
-`
-
-func (s *Scope) GetInt(key string) int { return 0 }
-
-const js_Scope_GetInt = `
-	return s.jso[key];
-`
-
-func (s *Scope) GetFloat(key string) float64 { return 0 }
-
-const js_Scope_GetFloat = `
-	return s.jso[key];
-`
-
-func (s *Scope) Set(key string, value interface{}) {}
-
-const js_Scope_Set = `
-	s.jso[key] = value;
-`
-
-func (s *Scope) Apply(f func()) {}
-
-const js_Scope_Apply = `
-	s.jso.$apply(f);
-`
-
-func (s *Scope) EvalAsync(f func()) {}
-
-const js_Scope_EvalAsync = `
-  s.jso.$evalAsync(f);
-`
-
-type JQueryElement struct {
-	jso jsObject
+func (s *Scope) EvalAsync(f func()) {
+	s.Call("$evalAsync", f)
 }
 
-func (e *JQueryElement) Prop(name string) interface{} { return nil }
+type JQueryElement struct{ js.Object }
 
-const js_JQueryElement_Prop = `
-	return e.jso.prop(name);
-`
+func (e *JQueryElement) Prop(name string) js.Object {
+	return e.Call("prop", name)
+}
 
-func (e *JQueryElement) SetProp(name, value interface{}) {}
+func (e *JQueryElement) SetProp(name, value interface{}) {
+	e.Call("prop", name, value)
+}
 
-const js_JQueryElement_SetProp = `
-	e.jso.prop(name, value);
-`
+func (e *JQueryElement) On(events string, handler func(*Event)) {
+	e.Call("on", events, func(e js.Object) {
+		handler(&Event{e, e.Get("keyCode").Int()})
+	})
+}
 
-func (e *JQueryElement) On(events string, handler func(*Event))
+func (e *JQueryElement) Val() js.Object {
+	return e.Call("val")
+}
 
-const js_JQueryElement_On = `
-  e.jso.on(events, function(e) { handler(new Event.Ptr(e, e.keyCode)); });
-`
-
-func (e *JQueryElement) Val() interface{} { return "" }
-
-const js_JQueryElement_Val = `
-	return e.jso.val();
-`
-
-func (e *JQueryElement) SetVal(value interface{}) {}
-
-const js_JQueryElement_SetVal = `
-	e.jso.val(value);
-`
+func (e *JQueryElement) SetVal(value interface{}) {
+	e.Call("val", value)
+}
 
 type Event struct {
-	jso     jsObject
+	js.Object
 	KeyCode int
 }
 
-func (e *Event) PreventDefault() {}
+func (e *Event) PreventDefault() {
+	e.Call("preventDefault")
+}
 
-const js_Event_PreventDefault = `
-	e.jso.preventDefault();
-`
+func NewModule(name string, requires []string, configFn func()) *Module {
+	return &Module{js.Global("angular").Call("module", name, requires, configFn)}
+}
 
-func NewModule(name string, requires []string, configFn func()) *Module { return nil }
+func ElementById(id string) *JQueryElement {
+	return &JQueryElement{js.Global("angular").Call("element", js.Global("document").Call("getElementById", id))}
+}
 
-const js_NewModule = `
-	return new Module.Ptr(angular.module(name, requires, configFn));
-`
-
-func ElementById(id string) *JQueryElement { return nil }
-
-const js_ElementById = `
-	return new JQueryElement.Ptr(angular.element(document.getElementById(id)));
-`
-
-func Service(name string) jsObject { return nil }
-
-const js_Service = `
-	return angular.element(document).injector().get(name);
-`
+func Service(name string) js.Object {
+	return js.Global("angular").Call("element", js.Global("document")).Call("injector").Call("get", name)
+}
 
 type HttpService struct{}
 
 var HTTP = new(HttpService)
 
-func (s *HttpService) Get(url string, callback func(data string, status int)) {}
-
-const js_HttpService_Get = `
-	js_Service("$http").get(url).
-		success(function(data, status, headers, config) {
-			callback(data, status);
-		}).
-		error(function(data, status, headers, config) {
-			callback(data, status);
-		});
-`
+func (s *HttpService) Get(url string, callback func(data string, status int)) {
+	future := Service("$http").Call("get", url)
+	future.Call("success", func(data string, status int, headers js.Object, config js.Object) {
+		callback(data, status)
+	})
+	future.Call("error", func(data string, status int, headers js.Object, config js.Object) {
+		callback(data, status)
+	})
+}
