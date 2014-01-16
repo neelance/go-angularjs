@@ -32,7 +32,7 @@ func (e *JQueryElement) SetProp(name, value interface{}) {
 
 func (e *JQueryElement) On(events string, handler func(*Event)) {
 	e.Call("on", events, func(e js.Object) {
-		handler(&Event{e, e.Get("keyCode").Int()})
+		handler(&Event{Object: e})
 	})
 }
 
@@ -46,7 +46,7 @@ func (e *JQueryElement) SetVal(value interface{}) {
 
 type Event struct {
 	js.Object
-	KeyCode int
+	KeyCode int `js:"keyCode"`
 }
 
 func (e *Event) PreventDefault() {
