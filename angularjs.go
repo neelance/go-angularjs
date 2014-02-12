@@ -1,6 +1,6 @@
 package angularjs
 
-import "github.com/neelance/gopherjs/js"
+import "github.com/gopherjs/gopherjs/js"
 
 type Module struct{ js.Object }
 
