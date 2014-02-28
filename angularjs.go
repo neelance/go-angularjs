@@ -54,15 +54,15 @@ func (e *Event) PreventDefault() {
 }
 
 func NewModule(name string, requires []string, configFn func()) *Module {
-	return &Module{js.Global("angular").Call("module", name, requires, configFn)}
+	return &Module{js.Global.Get("angular").Call("module", name, requires, configFn)}
 }
 
 func ElementById(id string) *JQueryElement {
-	return &JQueryElement{js.Global("angular").Call("element", js.Global("document").Call("getElementById", id))}
+	return &JQueryElement{js.Global.Get("angular").Call("element", js.Global.Get("document").Call("getElementById", id))}
 }
 
 func Service(name string) js.Object {
-	return js.Global("angular").Call("element", js.Global("document")).Call("injector").Call("get", name)
+	return js.Global.Get("angular").Call("element", js.Global.Get("document")).Call("injector").Call("get", name)
 }
 
 type HttpService struct{}
