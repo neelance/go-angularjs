@@ -1,0 +1,24 @@
+{
+  "name": "jstest",
+  "version": "0.0.0",
+  "homepage": "https://github.com/gopherjs/go-angularjs",
+  "authors": [
+    "phaikawl <phaikawl@gmail.com>"
+  ],
+  "description": "angular interaction test cases for go-angularjs",
+  "main": "jstest.js",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "*",
+    "angular-mocks": "*",
+    "angular-route": "*"
+  }
+}
