@@ -14,12 +14,12 @@ func main() {
 	Describe("Test suite", func() {
 		app := ng.NewModule("publicApp", []string{"ngMock", "ngRoute"})
 		app.NewController("MainCtrl", func(scope *ng.Scope) {})
-		app.Config(func(services *ng.Injector) {
-			ng.RouteProvider(services).When("/", ng.Options(
-				ng.Route.Controller("MainCtrl"),
-				ng.Route.TemplatePath("test"),
+		app.Config(func(r *ng.RouteProvider) {
+			r.When("/", ng.RouteOptions(
+				ng.RouteController{"MainCtrl"},
+				ng.RouteTemplate{"test"},
 			))
-		}, ng.Inject("$routeProvider"))
+		})
 
 		BeforeEach(func() {
 			js.Global.Call("module", "publicApp")
