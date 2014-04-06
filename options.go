@@ -7,7 +7,7 @@ type RouteTemplate struct{ Value string }
 
 type RouteSpec struct {
 	Controller RouteController `js:"controller"`
-	Template   RouteTemplate   `js:"template"`
+	Template   RouteTemplate   `js:"templateUrl"`
 }
 
 type AngularOpts struct{ *op.OptionsProvider }

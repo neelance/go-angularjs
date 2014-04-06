@@ -24,12 +24,12 @@ func main() {
 		BeforeEach(func() {
 			js.Global.Call("module", "publicApp")
 		})
-		js.Global.Call("it", "Route test", func() {
+		It("Route test", func() {
 			ng.Bootstrap([]string{"publicApp"})
 			js.Global.Call("inject", []interface{}{"$route", "$location",
 				func(route js.Object, location js.Object) {
 					location.Call("path", "/")
-					Expect(route.Get("routes").Get("/").Get("templateUrl")).ToBe("test")
+					Expect(route.Get("routes").Get("/").Get("controller")).ToBe("MainCtrl")
 				}})
 		})
 	})

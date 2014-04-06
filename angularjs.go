@@ -32,64 +32,49 @@ func AngularJs() (obj js.Object) {
 
 type Injector struct {
 	inject.Injector
-	providers map[reflect.Type]string
+	providers map[reflect.Type]provider
 }
 
 func NewInjector() *Injector {
 	inj := &Injector{
 		inject.New(),
-		map[reflect.Type]string{
-			reflect.TypeOf(&RouteProvider{}): "$routeProvider",
+		map[reflect.Type]provider{
+			reflect.TypeOf(RouteProvider{}): &RouteProvider{NewProvider("$routeProvider")},
 		},
 	}
-
-	//for typ, _ := range DefaultProvidersMap {
-	//	rtype := reflect.TypeOf(typ)
-	//	v := reflect.ValueOf(typ)
-	//	inj.Set(rtype, v)
-	//}
 
 	return inj
 }
 
-func (inj *Injector) RequestedProviders(fn interface{}) (types []reflect.Type, names []string) {
+//RequestedProviders gets the list of dependencies required in the funtion fn's
+//parameter list.
+func (inj *Injector) RequestedProviders(fn interface{}) (providers []provider) {
 	t := reflect.TypeOf(fn)
-	names = make([]string, t.NumIn())
-	types = make([]reflect.Type, t.NumIn())
+	providers = make([]provider, t.NumIn())
 	for i := 0; i < t.NumIn(); i++ {
-		argType := t.In(i)
-		names[i], types[i] = inj.providers[argType], argType
+		argType := t.In(i).Elem()
+		var ok bool
+		providers[i], ok = inj.providers[argType]
+		if !ok {
+			panic("Invalid provider.")
+		}
 	}
 	return
 }
 
-////depList makes a generic array of providers
-////and add the function fn at the end.
-//func (inj *Injector) DepList(fn interface{}) []interface{} {
-//	providers := inj.InjectedProviders()
-//	l := make([]interface{}, len(providers)+1)
-//	for i, p := range providers {
-//		l[i] = fmt.Sprintf("%sProvider", p)
-//	}
-//	l[len(providers)] = fn
-//	return l
-//}
-
+//AngularDeps makes a generic array of providers
+//and add the injected function fn at the end.
 func (inj *Injector) AngularDeps(fn interface{}) []interface{} {
-	ptypes, pnames := inj.RequestedProviders(fn)
-	deps := make([]interface{}, len(pnames))
-	for i, _ := range pnames {
-		deps[i] = pnames[i]
+	rp := inj.RequestedProviders(fn)
+	deps := make([]interface{}, len(rp))
+	for i, _ := range rp {
+		deps[i] = rp[i].AngularName()
 	}
 	deps = append(deps, func(providers ...js.Object) {
-		in := make([]reflect.Value, len(ptypes))
-		for i, ptype := range ptypes {
-			in[i] = reflect.New(ptype.Elem())
-			if !in[i].Elem().FieldByName("Object").CanSet() {
-				panic("Something's wrong with the provider object.")
-			}
-			field := in[i].Elem().FieldByName("Object")
-			field.Set(reflect.ValueOf(providers[i]))
+		in := make([]reflect.Value, len(rp))
+		for i, p := range rp {
+			p.SetJs(providers[i])
+			in[i] = reflect.ValueOf(p)
 		}
 		reflect.ValueOf(fn).Call(in)
 	})
@@ -107,7 +92,31 @@ func InitAngular() *Angular {
 
 type Module struct{ js.Object }
 type RouteProvider struct {
+	*Provider
+}
+
+type provider interface {
+	SetJs(js.Object)
+	AngularName() string
+}
+
+type Provider struct {
 	js.Object
+	angularName string
+}
+
+func NewProvider(name string) *Provider {
+	p := &Provider{}
+	p.angularName = name
+	return p
+}
+
+func (p *Provider) SetJs(obj js.Object) {
+	p.Object = obj
+}
+
+func (p *Provider) AngularName() string {
+	return p.angularName
 }
 
 func (r *RouteProvider) When(path string, route *AngularOpts) *RouteProvider {
