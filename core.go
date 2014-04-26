@@ -1,17 +1,31 @@
 package angularjs
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/codegangsta/inject"
 	"github.com/gopherjs/gopherjs/js"
+	op "github.com/phaikawl/options"
 )
 
 var (
-	Ng = InitAngular()
+	Ng                   = InitAngular()
+	AngularProvidersList = map[reflect.Type]provider{
+		reflect.TypeOf(RouteProvider{}): &RouteProvider{NewProvider("$routeProvider")},
+		reflect.TypeOf(HttpService{}):   &HttpService{NewProvider("$http")},
+		reflect.TypeOf(Scope{}):         &Scope{NewProvider("$scope")},
+		reflect.TypeOf(RootScope{}):     &RootScope{NewProvider("$rootScope")},
+		reflect.TypeOf(QProvider{}):     &QProvider{NewProvider("$q")},
+		reflect.TypeOf(HttpProvider{}):  &HttpProvider{NewProvider("$httpProvider")},
+	}
 )
+
+type AngularOpts struct{ *op.OptionsProvider }
+
+func (o *AngularOpts) toJs() map[string]interface{} {
+	return o.OptionsProvider.ExportToMapWithTag("js")
+}
 
 type DummyJsObj struct{ js.Object }
 
@@ -40,19 +54,15 @@ type Injector struct {
 func NewInjector() *Injector {
 	inj := &Injector{
 		inject.New(),
-		map[reflect.Type]provider{
-			reflect.TypeOf(RouteProvider{}): &RouteProvider{NewProvider("$routeProvider")},
-			reflect.TypeOf(HttpService{}):   &HttpService{NewProvider("$http")},
-			reflect.TypeOf(Scope{}):         &Scope{NewProvider("$scope")},
-		},
+		AngularProvidersList,
 	}
 
 	return inj
 }
 
-//RequestedProviders gets the list of dependencies required in the funtion fn's
+//requestedProviders gets the list of dependencies required in the funtion fn's
 //parameter list.
-func (inj *Injector) RequestedProviders(fn interface{}) (providers []provider) {
+func (inj *Injector) requestedProviders(fn interface{}) (providers []provider) {
 	t := reflect.TypeOf(fn)
 	providers = make([]provider, t.NumIn())
 	for i := 0; i < t.NumIn(); i++ {
@@ -66,23 +76,33 @@ func (inj *Injector) RequestedProviders(fn interface{}) (providers []provider) {
 	return
 }
 
-//AngularDeps makes a generic array of providers
-//and add the injected function fn at the end.
-func (inj *Injector) AngularDeps(fn interface{}) []interface{} {
-	rp := inj.RequestedProviders(fn)
+func (inj *Injector) _angularDeps(fn interface{}, transformFn func(reflect.Value) reflect.Value) []interface{} {
+	rp := inj.requestedProviders(fn)
 	deps := make([]interface{}, len(rp))
 	for i, _ := range rp {
 		deps[i] = rp[i].AngularName()
 	}
-	deps = append(deps, func(providers ...js.Object) {
+	deps = append(deps, func(providers ...js.Object) interface{} {
 		in := make([]reflect.Value, len(rp))
 		for i, p := range rp {
 			p.SetJs(providers[i])
 			in[i] = reflect.ValueOf(p)
 		}
+		if reflect.TypeOf(fn).NumOut() > 0 && transformFn != nil {
+			return transformFn(reflect.ValueOf(fn).Call(in)[0]).Interface()
+		}
 		reflect.ValueOf(fn).Call(in)
+		return nil
 	})
 	return deps
+}
+
+//angularDeps makes a generic array of providers
+//and add the injected function fn at the end.
+func (inj *Injector) angularDeps(fn interface{}) []interface{} {
+	return inj._angularDeps(fn, func(v reflect.Value) reflect.Value {
+		return v
+	})
 }
 
 type Angular struct {
@@ -95,9 +115,6 @@ func InitAngular() *Angular {
 }
 
 type Module struct{ js.Object }
-type RouteProvider struct {
-	*Provider
-}
 
 type provider interface {
 	SetJs(js.Object)
@@ -123,21 +140,16 @@ func (p *Provider) AngularName() string {
 	return p.angularName
 }
 
-func (r *RouteProvider) When(path string, route *AngularOpts) *RouteProvider {
-	r.Call("when", path, route.toJs())
-	return r
-}
-
-func (r *RouteProvider) Otherwise(route *AngularOpts) {
-	r.Call("otherwise", route.toJs())
-}
-
 func (m *Module) Config(fn interface{}) {
-	m.Call("config", Ng.Inj.AngularDeps(fn))
+	m.Call("config", Ng.Inj.angularDeps(fn))
+}
+
+func (m *Module) Factory(name string, fn interface{}) {
+	m.Call("factory", name, Ng.Inj.angularDeps(fn))
 }
 
 func (m *Module) NewController(name string, constructor interface{}) {
-	m.Call("controller", name, Ng.Inj.AngularDeps(constructor))
+	m.Call("controller", name, Ng.Inj.angularDeps(constructor))
 }
 
 type Scope struct{ *Provider }
@@ -195,71 +207,4 @@ func NewModule(name string, requires []string) *Module {
 
 func ElementById(id string) *JQueryElement {
 	return &JQueryElement{AngularJs().Call("element", js.Global.Get("document").Call("getElementById", id))}
-}
-
-type HttpService struct{ *Provider }
-
-type HttpMethod string
-
-const (
-	HttpGet  HttpMethod = "GET"
-	HttpPost HttpMethod = "POST"
-)
-
-type Future struct{ js.Object }
-
-type RequestCallback interface{}
-
-func (ft *Future) call(state string, callback RequestCallback) *Future {
-	ft.Call(state, func(data interface{}, status int, headers js.Object, config js.Object) {
-		cbt := reflect.TypeOf(callback)
-		in := make([]reflect.Value, cbt.NumIn())
-		dparam := cbt.In(0)
-		var d reflect.Value
-		switch dparam.Name() {
-		case "string":
-			if _, ok := data.(string); !ok {
-				panic("Type mismatch.")
-			}
-			d = reflect.ValueOf(data)
-		default:
-			var sdata string
-			var ok bool
-			if sdata, ok = data.(string); !ok {
-				panic("Something is wrong.")
-			}
-			d = reflect.New(dparam)
-			err := json.Unmarshal([]byte(sdata), d.Interface())
-			if err != nil {
-				panic(fmt.Sprintf("Response \"%v\" cannot be parsed to type %s. Error %v", sdata, dparam, err.Error()))
-			}
-		}
-		in[0] = d.Elem()
-		in[1] = reflect.ValueOf(status)
-		reflect.ValueOf(callback).Call(in)
-	})
-	return ft
-}
-
-func (ft *Future) Success(callback RequestCallback) *Future {
-	return ft.call("success", callback)
-}
-func (ft *Future) Error(callback RequestCallback) *Future {
-	return ft.call("error", callback)
-}
-
-//Req performs a http request
-func (s *HttpService) Req(method HttpMethod, url string) *Future {
-	future := s.Invoke(map[string]interface{}{
-		"method": string(method),
-		"url":    url,
-		"transformResponse": func(data string, headersGetter interface{}) string {
-			return data
-		},
-	})
-	return &Future{future}
-}
-
-func (s *HttpService) Get(url string) *Future {
-	return s.Req(HttpGet, url)
 }
