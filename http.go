@@ -45,10 +45,10 @@ func jso2map(j js.Object) map[string]string {
 }
 
 func ReqOptsFromJs(j js.Object) *ReqOpts {
-	return HttpConfig(ReqMethod{str2httpMethod(j.Get("method").String())},
-		ReqUrl{j.Get("url").String()},
+	return HttpConfig(ReqMethod{str2httpMethod(j.Get("method").Str())},
+		ReqUrl{j.Get("url").Str()},
 		ReqParams{jso2map(j.Get("params"))},
-		ReqData{j.Get("data").String()},
+		ReqData{j.Get("data").Str()},
 		ReqHeaders{jso2map(j.Get("headers"))},
 	)
 }
@@ -172,14 +172,8 @@ func (hi HttpInterceptor) ToJs() (r map[string]interface{}) {
 	if hi.OnRequest != nil {
 		r["request"] = func(jso js.Object) interface{} {
 			reqOpts := ReqOptsFromJs(jso)
-			r1 := &ReqSpec{}
-			r1.Headers = ReqHeaders{make(map[string]string)}
 			r := reqOpts.Spec()
-			println(r)
-			//r.Headers = ReqHeaders{make(map[string]string)}
-			println(fmt.Sprintf("%+v", r))
-			println(fmt.Sprintf("%+v", r.Headers))
-			//hi.OnRequest(r)
+			hi.OnRequest(r)
 			return reqOpts.toJs()
 		}
 	}

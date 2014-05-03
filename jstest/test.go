@@ -69,5 +69,39 @@ func main() {
 			Expect(rootScope.Get("ok")).ToBe(1)
 			_ = ctl
 		})
+
+		It("Should call the http interceptor on request", func() {
+			var httpBackend, rootScope, controller js.Object
+			var createController func() js.Object
+			called := false
+			ng.AddHttpInterceptor(app, "authInterceptor", func(q *ng.QProvider, rootScope *ng.RootScope) ng.HttpInterceptor {
+				return ng.HttpInterceptor{
+					OnRequest: func(c *ng.ReqSpec) {
+						called = true
+					},
+					OnResponse: func(j js.Object) interface{} {
+						return q.NowOrLater(j)
+					},
+				}
+			})
+			inject("$injector", func(inj js.Object) {
+				httpBackend = inj.Call("get", "$httpBackend")
+				httpBackend.Call("when", "GET", "/test").Call("respond",
+					"{\"ok\": 1}")
+				rootScope = inj.Call("get", "$rootScope")
+				controller = inj.Call("get", "$controller")
+				createController = func() js.Object {
+					return controller.Invoke("HttpTestCtrl", map[string]js.Object{
+						"$scope": rootScope,
+					})
+				}
+			})
+
+			ctl := createController()
+			httpBackend.Call("expectGET", "/test")
+			httpBackend.Call("flush")
+			Expect(called).ToBe(true)
+			_ = ctl
+		})
 	})
 }
