@@ -18,6 +18,7 @@ var (
 		reflect.TypeOf(RootScope{}):     &RootScope{NewProvider("$rootScope")},
 		reflect.TypeOf(QProvider{}):     &QProvider{NewProvider("$q")},
 		reflect.TypeOf(HttpProvider{}):  &HttpProvider{NewProvider("$httpProvider")},
+		reflect.TypeOf(Interval{}):      &Interval{NewProvider("$interval")},
 	}
 )
 
@@ -151,6 +152,8 @@ func (m *Module) Factory(name string, fn interface{}) {
 func (m *Module) NewController(name string, constructor interface{}) {
 	m.Call("controller", name, Ng.Inj.angularDeps(constructor))
 }
+
+type Interval struct{ *Provider }
 
 type Scope struct{ *Provider }
 
