@@ -19,6 +19,7 @@ var (
 		reflect.TypeOf(QProvider{}):     &QProvider{NewProvider("$q")},
 		reflect.TypeOf(HttpProvider{}):  &HttpProvider{NewProvider("$httpProvider")},
 		reflect.TypeOf(Interval{}):      &Interval{NewProvider("$interval")},
+		reflect.TypeOf(RouteParams{}):   &RouteParams{NewProvider("$routeParams")},
 	}
 )
 
