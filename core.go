@@ -154,6 +154,10 @@ func (m *Module) NewController(name string, constructor interface{}) {
 	m.Call("controller", name, Ng.Inj.angularDeps(constructor))
 }
 
+func (m *Module) Filter(name string, constructor interface{}) {
+	m.Call("filter", name, Ng.Inj.angularDeps(constructor))
+}
+
 type Interval struct{ *Provider }
 
 type Scope struct{ *Provider }
