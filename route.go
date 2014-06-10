@@ -30,3 +30,11 @@ func (r *RouteProvider) When(path string, route *RouteOpts) *RouteProvider {
 func (r *RouteProvider) Otherwise(route *RouteOpts) {
 	r.Call("otherwise", route.toJs())
 }
+
+type RouteParams struct {
+	*Provider
+}
+
+func (r *RouteParams) Get(name string) string {
+	return r.Provider.Get(name).Str()
+}
