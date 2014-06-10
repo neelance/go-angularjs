@@ -117,6 +117,9 @@ func (ft *Future) call(state string, callback RequestCallback) *Future {
 				panic(fmt.Sprintf("Response \"%v\" cannot be parsed to type %s. Error %v", sdata, dparam, err.Error()))
 			}
 		}
+		if len(in) < 2 {
+			panic("Can't map response to callback arguments. Should be func(data interface{}, status int)")
+		}
 		in[0] = d.Elem()
 		in[1] = reflect.ValueOf(status)
 		reflect.ValueOf(callback).Call(in)
