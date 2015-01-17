@@ -26,7 +26,7 @@ func (e *JQueryElement) Prop(name string) js.Object {
 	return e.Call("prop", name)
 }
 
-func (e *JQueryElement) SetProp(name, value interface{}) {
+func (e *JQueryElement) SetProp(name, value js.Any) {
 	e.Call("prop", name, value)
 }
 
@@ -40,7 +40,7 @@ func (e *JQueryElement) Val() js.Object {
 	return e.Call("val")
 }
 
-func (e *JQueryElement) SetVal(value interface{}) {
+func (e *JQueryElement) SetVal(value js.Any) {
 	e.Call("val", value)
 }
 
