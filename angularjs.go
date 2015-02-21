@@ -2,15 +2,15 @@ package angularjs
 
 import "github.com/gopherjs/gopherjs/js"
 
-type Module struct{ js.Object }
+type Module struct{ *js.Object }
 
 func (m *Module) NewController(name string, constructor func(scope *Scope)) {
-	m.Call("controller", name, func(dollar_scope js.Object) {
+	m.Call("controller", name, func(dollar_scope *js.Object) {
 		constructor(&Scope{dollar_scope})
 	})
 }
 
-type Scope struct{ js.Object }
+type Scope struct{ *js.Object }
 
 func (s *Scope) Apply(f func()) {
 	s.Call("$apply", f)
@@ -20,9 +20,9 @@ func (s *Scope) EvalAsync(f func()) {
 	s.Call("$evalAsync", f)
 }
 
-type JQueryElement struct{ js.Object }
+type JQueryElement struct{ *js.Object }
 
-func (e *JQueryElement) Prop(name string) js.Object {
+func (e *JQueryElement) Prop(name string) *js.Object {
 	return e.Call("prop", name)
 }
 
@@ -31,12 +31,12 @@ func (e *JQueryElement) SetProp(name, value interface{}) {
 }
 
 func (e *JQueryElement) On(events string, handler func(*Event)) {
-	e.Call("on", events, func(e js.Object) {
+	e.Call("on", events, func(e *js.Object) {
 		handler(&Event{Object: e})
 	})
 }
 
-func (e *JQueryElement) Val() js.Object {
+func (e *JQueryElement) Val() *js.Object {
 	return e.Call("val")
 }
 
@@ -45,7 +45,7 @@ func (e *JQueryElement) SetVal(value interface{}) {
 }
 
 type Event struct {
-	js.Object
+	*js.Object
 	KeyCode int `js:"keyCode"`
 }
 
@@ -61,7 +61,7 @@ func ElementById(id string) *JQueryElement {
 	return &JQueryElement{js.Global.Get("angular").Call("element", js.Global.Get("document").Call("getElementById", id))}
 }
 
-func Service(name string) js.Object {
+func Service(name string) *js.Object {
 	return js.Global.Get("angular").Call("element", js.Global.Get("document")).Call("injector").Call("get", name)
 }
 
@@ -71,10 +71,10 @@ var HTTP = new(HttpService)
 
 func (s *HttpService) Get(url string, callback func(data string, status int)) {
 	future := Service("$http").Call("get", url)
-	future.Call("success", func(data string, status int, headers js.Object, config js.Object) {
+	future.Call("success", func(data string, status int, headers *js.Object, config *js.Object) {
 		callback(data, status)
 	})
-	future.Call("error", func(data string, status int, headers js.Object, config js.Object) {
+	future.Call("error", func(data string, status int, headers *js.Object, config *js.Object) {
 		callback(data, status)
 	})
 }
