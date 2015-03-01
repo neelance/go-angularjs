@@ -5,9 +5,9 @@ import "github.com/gopherjs/gopherjs/js"
 type Module struct{ *js.Object }
 
 func (m *Module) NewController(name string, constructor func(scope *Scope)) {
-	m.Call("controller", name, func(dollar_scope *js.Object) {
-		constructor(&Scope{dollar_scope})
-	})
+	m.Call("controller", name, js.S{"$scope", func(scope *js.Object) {
+		constructor(&Scope{scope})
+	}})
 }
 
 type Scope struct{ *js.Object }
