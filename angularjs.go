@@ -10,6 +10,10 @@ func (m *Module) NewController(name string, constructor func(scope *Scope)) {
 	}})
 }
 
+func (m *Module) NewDirective(name string, factory func() map[string]interface{}) {
+	m.Call("directive", name, factory)
+}
+
 type Scope struct{ *js.Object }
 
 func (s *Scope) Apply(f func()) {
